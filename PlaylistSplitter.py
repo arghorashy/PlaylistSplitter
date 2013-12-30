@@ -8,6 +8,7 @@ import operator
 path_of_listing = "inputs/listing.txt"
 path_of_playlist = "inputs/playlist.mp3"
 path_of_mpg123 = "lib/mpg123/Win64/mpg123.exe"
+sampling_period = 0.5
 
 # Other parameters
 if not os.path.exists('tmp'):
@@ -74,41 +75,36 @@ def get_silences(ampprofile, sample_period):
 		if in_silence:
 			if amp > threshold:
 				in_silence = False
+				duration = i-start_of_curr_silence
+				if duration > 0:
+					score = 0
+					for j in range(start_of_curr_silence,i):
+						score += threshold - ampprofile[j]
+					score *= (duration) * 3
 
-				score = 0
-				for j in range(start_of_curr_silence,i):
-					score += meanamp - ampprofile[j]
-				score *= (i-start_of_curr_silence) * 3
+					time = start_of_curr_silence * sample_period
 
-				time = start_of_curr_silence * sample_period
+					silence = {}
+					silence['time'] = time
+					silence['duration'] = duration
+					silence['score'] = score
 
-				silence = {}
-				silence['time'] = time
-				silence['duration'] = i-start_of_curr_silence
-				silence['score'] = score
-
-				silences.append(silence)
+					silences.append(silence)
 
 	return silences
 
+def secondsToTime(seconds):
+	minutes = int(seconds / 60)
+	seconds = seconds % 60
 
+	if seconds < 10:
+		seconds = str(0) + str(seconds)
+	else:
+		seconds = str(seconds)
 
+	minutes = str(minutes)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	return minutes + ":" + seconds
 
 
 
@@ -130,26 +126,56 @@ print(track_num)
 #convert_mp3_to_wav(path_of_playlist, path_of_wav, path_of_mpg123)
 
 # 
-ampprofile = get_amp_profile(path_of_wav, 0.5)
+ampprofile = get_amp_profile(path_of_wav, sampling_period)
 
 #
-silences = get_silences(ampprofile, 0.5)
+silences = get_silences(ampprofile, sampling_period)
 
 #
 silences = sorted(silences, key=operator.itemgetter('score'), reverse=True)
 
+##############################
 #
-times = []
+#       Diagnostics
+#
+##############################
+if not os.path.exists('diag'):
+        os.makedirs('diag')
+path_of_wav = "tmp/out.wav"
+
+
+# Show best times only
+f = open('diag/besttimes.csv', 'w')
+f.write("time, score, duration\n")
+
+best_silences = []
 for i in range(track_num):
-	times.append(silences[i]['time'])
+	best_silences.append(silences[i])
 
-times = sorted(times)
+best_silences = sorted(best_silences, key=operator.itemgetter('time'), reverse=False)
 
-for time in times:
-	minutes = time / 60
-	seconds = time % 60
-	print(str(int(minutes)) + ":" + str(int(seconds)))
+for silence in best_silences:
+	f.write(secondsToTime(silence['time']) + "," + str(silence['score'])+ "," + str(silence['duration']) + "\n")
+
+f.close()
 
 
+# Show amp profile
+f = open('diag/ampprofile.csv', 'w')
+f.write('amplitude, time' + "\n")
+
+for i,amp in enumerate(ampprofile):
+	f.write(str(amp) + "," + secondsToTime(i*sampling_period) + "\n")
+
+f.close
+
+# Show all detected pauses
+f = open('diag/all_silences.csv', 'w')
+f.write("time, score, duration" + "\n")
+
+for silence in silences:
+	f.write(secondsToTime(silence['time']) + "," + str(silence['score'])+ "," + str(silence['duration']) + "\n")
+
+f.close()
 
 
