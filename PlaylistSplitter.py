@@ -1,5 +1,8 @@
 import re
 import numpy as np
+import os
+import operator
+
 
 # Paramaters to be set
 path_of_listing = "inputs/listing.txt"
@@ -7,38 +10,9 @@ path_of_playlist = "inputs/playlist.mp3"
 path_of_mpg123 = "lib/mpg123/Win64/mpg123.exe"
 
 # Other parameters
+if not os.path.exists('tmp'):
+        os.makedirs('tmp')
 path_of_wav = "tmp/out.wav"
-
-# Get list of track names
-with open(path_of_listing) as f:
-    listing_contents = f.readlines()
-
-for line in listing_contents:
-	line = re.sub(r"[0-9]{1,2}:[0-9]{2}[\s]*", "", line)
-	line = re.sub(r"\n", "", line)
-
-# Get number of tracks
-track_num = len(listing_contents)
-print(track_num)
-
-# Convert mp3 file to wav
-convert_mp3_to_wav(path_of_playlist, path_of_wav, path_of_mpg123)
-
-# 
-ampprofile = get_amp_profile(path_of_wav, 1)
-
-#
-silences = get_silences(ampprofile, 1)
-
-#
-silences = sorted(silences, key=attrgetter('score'), reverse=True)
-
-#
-for i in range(track_num):
-	print(silences[i]['time'])
-	print("\n")
-
-
 
 
 
@@ -59,14 +33,14 @@ def get_amp_profile(wavpath, sample_period):
 	ampprofile = []
 
 	wr = wave.open(wavpath, 'r')
-	fr = wr.getframerate() 	# sampling frequency
+	fr = int(wr.getframerate() * sample_period)	# sampling frequency
 	fn = wr.getnframes() 	# get number of frames
 
 	while True:
 
 		stepsize = fr
-		if tell() + stepsize > fn:
-			stepsize = fn - tell() - 1
+		if wr.tell() + stepsize > fn:
+			stepsize = fn - wr.tell() - 1
 
 		if stepsize <= 0:
 			break
@@ -80,11 +54,11 @@ def get_amp_profile(wavpath, sample_period):
 	return ampprofile
 
 def get_silences(ampprofile, sample_period):
-	minamp = np.minimum(ampprofile)
+	minamp = np.min(ampprofile)
 	meanamp = np.mean(ampprofile)
-	stdamp = np.std(ampp)
+	stdamp = np.std(ampprofile)
 
-	threshold = meanamp - stdamp * 2
+	threshold = meanamp - stdamp * 2.5
 
 	silences = []
 
@@ -98,13 +72,13 @@ def get_silences(ampprofile, sample_period):
 				start_of_curr_silence = i
 
 		if in_silence:
-			if amp > theshold:
+			if amp > threshold:
 				in_silence = False
 
 				score = 0
 				for j in range(start_of_curr_silence,i):
 					score += meanamp - ampprofile[j]
-				score *= (i-start_of_curr_silence)
+				score *= (i-start_of_curr_silence) * 3
 
 				time = start_of_curr_silence * sample_period
 
@@ -116,3 +90,66 @@ def get_silences(ampprofile, sample_period):
 				silences.append(silence)
 
 	return silences
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Get list of track names
+with open(path_of_listing) as f:
+    listing_contents = f.readlines()
+
+for line in listing_contents:
+	line = re.sub(r"[0-9]{1,2}:[0-9]{2}[\s]*", "", line)
+	line = re.sub(r"\n", "", line)
+
+# Get number of tracks
+track_num = len(listing_contents)
+print(track_num)
+
+# Convert mp3 file to wav
+#convert_mp3_to_wav(path_of_playlist, path_of_wav, path_of_mpg123)
+
+# 
+ampprofile = get_amp_profile(path_of_wav, 0.5)
+
+#
+silences = get_silences(ampprofile, 0.5)
+
+#
+silences = sorted(silences, key=operator.itemgetter('score'), reverse=True)
+
+#
+times = []
+for i in range(track_num):
+	times.append(silences[i]['time'])
+
+times = sorted(times)
+
+for time in times:
+	minutes = time / 60
+	seconds = time % 60
+	print(str(int(minutes)) + ":" + str(int(seconds)))
+
+
+
+
