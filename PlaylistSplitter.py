@@ -49,7 +49,7 @@ def get_amp_profile(wavpath, sample_period):
 		da = np.fromstring(wr.readframes(stepsize), dtype=np.int16)
 		left, right = da[0::2], da[1::2]
 
-		ampprofile.append((np.mean(left) + np.mean(right))/2)
+		ampprofile.append(np.mean(np.abs(left)) + np.mean(np.abs(right))/2)
 
 	wr.close()
 	return ampprofile
@@ -59,7 +59,9 @@ def get_silences(ampprofile, sample_period):
 	meanamp = np.mean(ampprofile)
 	stdamp = np.std(ampprofile)
 
-	threshold = meanamp - stdamp * 2.5
+
+	threshold = meanamp - stdamp * 2
+	print("Threshold: " + str(threshold))
 
 	silences = []
 
@@ -123,7 +125,7 @@ track_num = len(listing_contents)
 print(track_num)
 
 # Convert mp3 file to wav
-#convert_mp3_to_wav(path_of_playlist, path_of_wav, path_of_mpg123)
+convert_mp3_to_wav(path_of_playlist, path_of_wav, path_of_mpg123)
 
 # 
 ampprofile = get_amp_profile(path_of_wav, sampling_period)
