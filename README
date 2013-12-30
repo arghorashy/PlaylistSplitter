@@ -1,2 +1,5 @@
 - Install mpg123
 - Install numpy
+
+Notice:
+- To run a quick test, copy the contents of test_assets into the root.
