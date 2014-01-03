@@ -1,8 +1,0 @@
-- create config file with obvious stuff
-	+ std dev multiple
-	+ sample period
-	+ score weights
-
-- add variance to score
-
-- create program that varies all the weights, sample period and std dev multiple for a mp3 where the sparations are known and finds ideal values.

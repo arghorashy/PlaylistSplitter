@@ -1,5 +1,24 @@
-- Install mpg123
-- Install numpy
+Overview
+--------
+This script is intended to take an MP3 containing many songs and cut it into a series of MP3 files, each containing one song.  The script also accepts a linebreak-separated list of song titles which determines into how many files the original MP3 file should be divided.
 
-Notice:
-- To run a quick test, copy the contents of test_assets into the root.
+Current progress
+----------------
+- Script converts original MP3 file into WAV file.
+- Script reads list of song titles.
+- Script determines locations that most likely correspond to the silences between songs.
+- Script outputs these locations, along with other diagnostic information into a directory called "diag".
+
+Next Steps
+----------
+- Improve script's ability to correctly find the boundaries between songs.
+- Perform the split and assign names.
+- Create GUI.
+
+Getting started
+---------------
+- Ensure numpy is installed.
+- Ensure the files required to run mpg123 on your system's operating system and/or architecture is available in lib/mpg123.  If not, download them and place them in an appropriately named directory.  Set the variable path_of_mpg123 in PlaylistSplit.py so that it points to the required executable.  
+- Ensure the variable path_of_listing points to a text file containing a list of song names.
+- Ensure the variable path_of_playlist points to an mp3 file.
+- If you want to quickly test the script, copy the directory test_assets/inputs to the root.  

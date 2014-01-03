@@ -3,18 +3,40 @@ import numpy as np
 import os
 import operator
 
+##############################
+#
+#    Parameters to be set by user
+#
+##############################
 
-# Paramaters to be set
+
 path_of_listing = "inputs/listing.txt"
 path_of_playlist = "inputs/playlist.mp3"
 path_of_mpg123 = "lib/mpg123/Win64/mpg123.exe"
-sampling_period = 0.5
+sampling_period = 0.5	# how many seconds to process at a time
 
-# Other parameters
-if not os.path.exists('tmp'):
-        os.makedirs('tmp')
-path_of_wav = "tmp/out.wav"
+##############################
+#
+#      Other crap
+#
+##############################
 
+tmp_dir = "tmp"
+diag_dir = "diag"
+path_of_wav = tmp_dir + "/out.wav"
+
+# Create directories that may not exist
+if not os.path.exists(tmp_dir):
+	os.makedirs(tmp_dir)
+
+if not os.path.exists(diag_dir):
+        os.makedirs(diag_dir)
+
+##############################
+#
+#      Functions
+#
+##############################
 
 
 def convert_mp3_to_wav(mp3path, wavpath, mpg123path):
@@ -27,20 +49,20 @@ def convert_mp3_to_wav(mp3path, wavpath, mpg123path):
 	    print(e)
 	    sys.exit(1)
 
-# sample_period: what sized piece (in seconds) should the song be divided into?
+# Returns a list of amplitudes: one amplitude per sample (~44000samples/s) 
 def get_amp_profile(wavpath, sample_period):
 	import wave
 
 	ampprofile = []
 
 	wr = wave.open(wavpath, 'r')
-	fr = int(wr.getframerate() * sample_period)	# sampling frequency
-	fn = wr.getnframes() 	# get number of frames
+	sf = wr.getframerate()	# sampling frequency (should be something like 44000Hz)
+	stepsize = int(sf * sample_period)
+	fn = wr.getnframes() 	# get number of frames in total in file
 
 	while True:
 
-		stepsize = fr
-		if wr.tell() + stepsize > fn:
+		if wr.tell() + stepsize > fn:  #
 			stepsize = fn - wr.tell() - 1
 
 		if stepsize <= 0:
@@ -54,31 +76,34 @@ def get_amp_profile(wavpath, sample_period):
 	wr.close()
 	return ampprofile
 
+
+# Find and rate all silences
 def get_silences(ampprofile, sample_period):
 	minamp = np.min(ampprofile)
 	meanamp = np.mean(ampprofile)
 	stdamp = np.std(ampprofile)
 
 
+	# amplitudes below this threshold are considered to be silent
 	threshold = meanamp - stdamp * 2
 	print("Threshold: " + str(threshold))
 
 	silences = []
 
-	in_silence = False
-	start_of_curr_silence = 0  
+	in_silence = False			# Currently in a silence?
+	start_of_curr_silence = 0  	# When current silence started
 	for i,amp in enumerate(ampprofile):
 
 		if not in_silence:
-			if amp < threshold:
+			if amp < threshold:		# beginning of silence
 				in_silence = True
 				start_of_curr_silence = i
 
 		if in_silence:
-			if amp > threshold:
+			if amp > threshold:		# end of silence
 				in_silence = False
 				duration = i-start_of_curr_silence
-				if duration > 0:
+				if duration > 3:	# ignore super short silences
 					score = 0
 					for j in range(start_of_curr_silence,i):
 						score += threshold - ampprofile[j]
@@ -109,7 +134,11 @@ def secondsToTime(seconds):
 	return minutes + ":" + seconds
 
 
-
+##############################
+#
+#      Beginning of main script
+#
+##############################
 
 
 # Get list of track names
@@ -117,7 +146,7 @@ with open(path_of_listing) as f:
     listing_contents = f.readlines()
 
 for line in listing_contents:
-	line = re.sub(r"[0-9]{1,2}:[0-9]{2}[\s]*", "", line)
+	line = re.sub(r"[0-9]{1,2}:[0-9]{2}[\s-]*", "", line)
 	line = re.sub(r"\n", "", line)
 
 # Get number of tracks
@@ -127,13 +156,13 @@ print(track_num)
 # Convert mp3 file to wav
 convert_mp3_to_wav(path_of_playlist, path_of_wav, path_of_mpg123)
 
-# 
+# Get amplitude profile
 ampprofile = get_amp_profile(path_of_wav, sampling_period)
 
-#
+# Get silences
 silences = get_silences(ampprofile, sampling_period)
 
-#
+# Sort silences by score
 silences = sorted(silences, key=operator.itemgetter('score'), reverse=True)
 
 ##############################
@@ -141,13 +170,11 @@ silences = sorted(silences, key=operator.itemgetter('score'), reverse=True)
 #       Diagnostics
 #
 ##############################
-if not os.path.exists('diag'):
-        os.makedirs('diag')
-path_of_wav = "tmp/out.wav"
 
 
-# Show best times only
-f = open('diag/besttimes.csv', 'w')
+
+# Diagnostic: Show best times only
+f = open(diag_dir + '/besttimes.csv', 'w')
 f.write("time, score, duration\n")
 
 best_silences = []
@@ -162,8 +189,8 @@ for silence in best_silences:
 f.close()
 
 
-# Show amp profile
-f = open('diag/ampprofile.csv', 'w')
+# Diagnostic: Show amp profile
+f = open(diag_dir + '/ampprofile.csv', 'w')
 f.write('amplitude, time' + "\n")
 
 for i,amp in enumerate(ampprofile):
@@ -171,8 +198,8 @@ for i,amp in enumerate(ampprofile):
 
 f.close
 
-# Show all detected pauses
-f = open('diag/all_silences.csv', 'w')
+# Diagnostic: Show all detected pauses
+f = open(diag_dir + '/all_silences.csv', 'w')
 f.write("time, score, duration" + "\n")
 
 for silence in silences:
