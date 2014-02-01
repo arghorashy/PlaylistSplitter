@@ -2,6 +2,16 @@ Overview
 --------
 This script is intended to take an MP3 containing many songs and cut it into a series of MP3 files, each containing one song.  The script also accepts a linebreak-separated list of song titles which determines into how many files the original MP3 file should be divided.
 
+General Configuration
+---------------------
+- Set path_of_listing so it points to a txt file where the linebreak-separated list of song names is located.
+- Set path_of_playlist so it points to the MP3 file to be split.
+
+Configuration for Windows
+-------------------------
+Set path_of_mpg123 so it points to the path of mpg123 ("lib/mpg123/Win64/mpg123.exe" for Win64, for example.)
+
+
 Current progress
 ----------------
 - Script converts original MP3 file into WAV file.
