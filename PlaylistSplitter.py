@@ -12,7 +12,8 @@ import operator
 
 path_of_listing = "inputs/listing.txt"
 path_of_playlist = "inputs/playlist.mp3"
-path_of_mpg123 = "lib/mpg123/Win64/mpg123.exe"
+#path_of_mpg123 = "lib/mpg123/Win64/mpg123.exe"
+path_of_mpg123 = "mpg123"
 sampling_period = 0.5	# how many seconds to process at a time
 
 ##############################

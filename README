@@ -9,7 +9,14 @@ General Configuration
 
 Configuration for Windows
 -------------------------
-Set path_of_mpg123 so it points to the path of mpg123 ("lib/mpg123/Win64/mpg123.exe" for Win64, for example.)
+- Set path_of_mpg123 so it points to the path of mpg123 ("lib/mpg123/Win64/mpg123.exe" for Win64, for example.)
+
+Configuration for Mac
+---------------------
+- Run the mpg123 install file (lib/mpg123/Mac10.8/mpg123-1.15.3-0.pkg), or get one more approrpiate for your version of Mac at "http://rudix.org/packages/mpg123.html"
+	- It might be necessary to follow the following steps if you receive the following message: "App can't be opened because it is from an unidentified developer"
+		- Go to System Preferences... > Security & Privacy and there should be a button saying Open Anyway, under the General tab.
+- Set path_of_mpg123 so it points to "mpg123"
 
 
 Current progress
