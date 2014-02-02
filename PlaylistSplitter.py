@@ -14,7 +14,7 @@ path_of_listing = "inputs/listing.txt"
 path_of_playlist = "inputs/playlist.mp3"
 #path_of_mpg123 = "lib/mpg123/Win64/mpg123.exe"
 path_of_mpg123 = "mpg123"
-sampling_period = 0.5	# how many seconds to process at a time
+
 
 ##############################
 #
@@ -32,6 +32,38 @@ if not os.path.exists(tmp_dir):
 
 if not os.path.exists(diag_dir):
         os.makedirs(diag_dir)
+
+
+##############################
+#
+#      Silences class
+#
+##############################
+
+class Silences(object):
+
+	def __init__(self):
+		self.silences = []
+
+	def addSilence(self, time, duration, score):
+		for silence in self.silences:
+			num = silence['instances']
+			if abs(silence['time'] - time) < duration + silence['duration'] + 15:
+				silence['score'] += score
+				silence['time'] = (time + silence['time'] * num)/(num+1.0)
+				silence['duration'] = (duration + silence['duration'] * num)/(num+1.0)
+				silence['instances'] += 1
+				break
+
+
+		newSilence = {}
+		newSilence['time'] = time
+		newSilence['duration'] = duration
+		newSilence['score'] = score
+		newSilence['instances'] = 1
+		self.silences.append(newSilence)
+
+
 
 ##############################
 #
@@ -79,17 +111,16 @@ def get_amp_profile(wavpath, sample_period):
 
 
 # Find and rate all silences
-def get_silences(ampprofile, sample_period):
+def get_silences(ampprofile, sample_period, std_factor, silences):
 	minamp = np.min(ampprofile)
 	meanamp = np.mean(ampprofile)
 	stdamp = np.std(ampprofile)
 
 
 	# amplitudes below this threshold are considered to be silent
-	threshold = meanamp - stdamp * 1.5
+	threshold = meanamp - stdamp * std_factor
 	print("Threshold: " + str(threshold))
 
-	silences = []
 
 	in_silence = False			# Currently in a silence?
 	start_of_curr_silence = 0  	# When current silence started
@@ -103,7 +134,7 @@ def get_silences(ampprofile, sample_period):
 		if in_silence:
 			if amp > threshold:		# end of silence
 				in_silence = False
-				duration = i-start_of_curr_silence
+				duration = (i-start_of_curr_silence) * sample_period
 				if duration > 2:	# ignore super short silences
 					score = 0
 					for j in range(start_of_curr_silence,i):
@@ -114,14 +145,8 @@ def get_silences(ampprofile, sample_period):
 
 					# Ignore silences within 10 seconds of the beginning or end of file
 					if start_of_curr_silence * sample_period > 10 or i * sample_period < len(ampprofile) * sample_period  - 10:
-						silence = {}
-						silence['time'] = time
-						silence['duration'] = duration
-						silence['score'] = score
+						silences.addSilence(time, duration, score)
 
-						silences.append(silence)
-
-	return silences
 
 def secondsToTime(seconds):
 	minutes = int(seconds / 60)
@@ -144,6 +169,7 @@ def secondsToTime(seconds):
 ##############################
 
 
+
 # Get list of track names
 with open(path_of_listing) as f:
     listing_contents = f.readlines()
@@ -159,14 +185,22 @@ print(track_num)
 # Convert mp3 file to wav
 convert_mp3_to_wav(path_of_playlist, path_of_wav, path_of_mpg123)
 
-# Get amplitude profile
-ampprofile = get_amp_profile(path_of_wav, sampling_period)
+silences = Silences()
 
-# Get silences
-silences = get_silences(ampprofile, sampling_period)
+
+for sampling_period in [0.4, 0.5, 0.6]: # map(lambda x: x/5.0, range(1, 11, 1)): #
+	for std_factor in [1.6, 1.8, 2.0, 2.2, 2.4, 2.6]: #map(lambda x: x/5.0, range(5,13,1)): 
+
+		# Get amplitude profile
+		ampprofile = get_amp_profile(path_of_wav, sampling_period)
+
+		# Get silences
+		get_silences(ampprofile, sampling_period, std_factor, silences)
+
+print ("Length: " + str(len(silences.silences)) + "\n")
 
 # Sort silences by score
-silences = sorted(silences, key=operator.itemgetter('score'), reverse=True)
+silences = sorted(silences.silences, key=operator.itemgetter('score'), reverse=True)
 
 ##############################
 #
