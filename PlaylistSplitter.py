@@ -86,7 +86,7 @@ def get_silences(ampprofile, sample_period):
 
 
 	# amplitudes below this threshold are considered to be silent
-	threshold = meanamp - stdamp * 2
+	threshold = meanamp - stdamp * 1.5
 	print("Threshold: " + str(threshold))
 
 	silences = []
@@ -104,20 +104,22 @@ def get_silences(ampprofile, sample_period):
 			if amp > threshold:		# end of silence
 				in_silence = False
 				duration = i-start_of_curr_silence
-				if duration > 3:	# ignore super short silences
+				if duration > 2:	# ignore super short silences
 					score = 0
 					for j in range(start_of_curr_silence,i):
 						score += threshold - ampprofile[j]
-					score *= (duration) * 3
+					score *= (duration) * 1
 
 					time = start_of_curr_silence * sample_period
 
-					silence = {}
-					silence['time'] = time
-					silence['duration'] = duration
-					silence['score'] = score
+					# Ignore silences within 10 seconds of the beginning or end of file
+					if start_of_curr_silence * sample_period > 10 or i * sample_period < len(ampprofile) * sample_period  - 10:
+						silence = {}
+						silence['time'] = time
+						silence['duration'] = duration
+						silence['score'] = score
 
-					silences.append(silence)
+						silences.append(silence)
 
 	return silences
 
@@ -179,7 +181,7 @@ f = open(diag_dir + '/besttimes.csv', 'w')
 f.write("time, score, duration\n")
 
 best_silences = []
-for i in range(track_num):
+for i in range(track_num - 1):  # -1 because we can assume the first song starts at 0:00
 	best_silences.append(silences[i])
 
 best_silences = sorted(best_silences, key=operator.itemgetter('time'), reverse=False)
