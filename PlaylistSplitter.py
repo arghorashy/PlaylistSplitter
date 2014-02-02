@@ -53,7 +53,7 @@ class Silences(object):
 				silence['time'] = (time + silence['time'] * num)/(num+1.0)
 				silence['duration'] = (duration + silence['duration'] * num)/(num+1.0)
 				silence['instances'] += 1
-				break
+				return
 
 
 		newSilence = {}
@@ -138,8 +138,8 @@ def get_silences(ampprofile, sample_period, std_factor, silences):
 				if duration > 2:	# ignore super short silences
 					score = 0
 					for j in range(start_of_curr_silence,i):
-						score += threshold - ampprofile[j]
-					score *= (duration) * 1
+						score += float(threshold - ampprofile[j])**2
+					#score *= (duration) * 1
 
 					time = start_of_curr_silence * sample_period
 
@@ -188,8 +188,8 @@ convert_mp3_to_wav(path_of_playlist, path_of_wav, path_of_mpg123)
 silences = Silences()
 
 
-for sampling_period in [0.4, 0.5, 0.6]: # map(lambda x: x/5.0, range(1, 11, 1)): #
-	for std_factor in [1.6, 1.8, 2.0, 2.2, 2.4, 2.6]: #map(lambda x: x/5.0, range(5,13,1)): 
+for sampling_period in [0.5]: # map(lambda x: x/5.0, range(1, 11, 1)): #
+	for std_factor in [1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0]: #map(lambda x: x/5.0, range(5,13,1)): 
 
 		# Get amplitude profile
 		ampprofile = get_amp_profile(path_of_wav, sampling_period)

@@ -41,7 +41,7 @@ Current progress
 
 Next Steps
 ----------
-- Improve script's ability to correctly find the boundaries between songs.
+- Create calibrator using MI.
 - Perform the split and assign names.
 - Create GUI.
 
