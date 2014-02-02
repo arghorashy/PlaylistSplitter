@@ -3,6 +3,9 @@ import numpy as np
 import os
 import operator
 
+# Class which handles tracking of found silences
+from silences import Silences
+
 ##############################
 #
 #    Parameters to be set by user
@@ -32,37 +35,6 @@ if not os.path.exists(tmp_dir):
 
 if not os.path.exists(diag_dir):
         os.makedirs(diag_dir)
-
-
-##############################
-#
-#      Silences class
-#
-##############################
-
-class Silences(object):
-
-	def __init__(self):
-		self.silences = []
-
-	def addSilence(self, time, duration, score):
-		for silence in self.silences:
-			num = silence['instances']
-			if abs(silence['time'] - time) < duration + silence['duration'] + 15:
-				silence['score'] += score
-				silence['time'] = (time + silence['time'] * num)/(num+1.0)
-				silence['duration'] = (duration + silence['duration'] * num)/(num+1.0)
-				silence['instances'] += 1
-				return
-
-
-		newSilence = {}
-		newSilence['time'] = time
-		newSilence['duration'] = duration
-		newSilence['score'] = score
-		newSilence['instances'] = 1
-		self.silences.append(newSilence)
-
 
 
 ##############################
@@ -139,7 +111,6 @@ def get_silences(ampprofile, sample_period, std_factor, silences):
 					score = 0
 					for j in range(start_of_curr_silence,i):
 						score += float(threshold - ampprofile[j])**2
-					#score *= (duration) * 1
 
 					time = start_of_curr_silence * sample_period
 
@@ -187,7 +158,9 @@ convert_mp3_to_wav(path_of_playlist, path_of_wav, path_of_mpg123)
 
 silences = Silences()
 
-
+# By increasing std_factor, the threshold is set to larger factors of the standard
+# deviation below the mean amplitude.  This makes the criteria defining a silence
+# more stringent.
 for sampling_period in [0.5]: # map(lambda x: x/5.0, range(1, 11, 1)): #
 	for std_factor in [1.6, 1.8, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0]: #map(lambda x: x/5.0, range(5,13,1)): 
 
